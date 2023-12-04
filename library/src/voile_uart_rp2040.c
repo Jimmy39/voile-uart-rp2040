@@ -8,28 +8,23 @@ voile_const_uart_Operate_t voile_const_uart_Operate_rp2040 = {
 };
 
 voile_const_uart_Get_t voile_const_uart_Get_rp2040 = {
-    .Receive = (uint8_t (*)(const void *))uart_rp2040_Get_Receive
+    .Receive = (uint8_t (*)(const void *))uart_rp2040_Get_Receive,
+    .IsWriteable = (bool (*)(const void *))uart_rp2040_Get_IsWritable
 };
 
-/// \tag::uart_reset[]
-static inline void uart_reset(uart_inst_t *uart) {
-    invalid_params_if(UART, uart != uart0 && uart != uart1);
-    reset_block(uart_get_index(uart) ? RESETS_RESET_UART1_BITS : RESETS_RESET_UART0_BITS);
-}
-
-static inline void uart_unreset(uart_inst_t *uart) {
-    invalid_params_if(UART, uart != uart0 && uart != uart1);
-    unreset_block_wait(uart_get_index(uart) ? RESETS_RESET_UART1_BITS : RESETS_RESET_UART0_BITS);
-}
 
 voile_status_t uart_rp2040_Operate_Init(voile_const_internal_uart_rp2040_t *uart_p, uint32_t baudrate){
-    uart_inst_t *uart = (uart_p->uartId == 0 ? uart0 : uart1);
-    uart_reset(uart);
-    uart_unreset(uart);
-
-#if PICO_UART_ENABLE_CRLF_SUPPORT
-    uart_set_translate_crlf(uart, PICO_UART_DEFAULT_CRLF);
-#endif
+    uart_inst_t *uart = ((uart_inst_t *)uart_p->uartId);
+    if (uart_p->uartId == UART0_voile){
+        uart_rp2040_resets->reset.UART0 = 1;
+    }
+    else if (uart_p->uartId == UART1_voile){
+        uart_rp2040_resets->reset.UART1 = 1;
+    }
+    else{
+        return hardwareUnsupportedError;
+    } 
+    unreset_block_wait(0 ? 1ul<<23 : 1ul<<22);
 
     // Any LCR writes need to take place before enabling the UART
     uart_set_baudrate(uart, baudrate);
