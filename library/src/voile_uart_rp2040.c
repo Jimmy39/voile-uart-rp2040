@@ -29,7 +29,7 @@ voile_status_t uart_rp2040_Operate_Init(voile_const_internal_uart_rp2040_t *uart
         return hardwareUnsupportedError;
     }
     // Any LCR writes need to take place before enabling the UART
-    uart_set_baudrate(uart, baudrate);
+    voile_uart_rp2040_Operate_SetBaudrate(uart_p, baudrate);
     uart_set_format(uart, 8, 1, UART_PARITY_NONE);
 
     // Enable FIFOs (must be before setting UARTEN, as this is an LCR access)
@@ -42,21 +42,75 @@ voile_status_t uart_rp2040_Operate_Init(voile_const_internal_uart_rp2040_t *uart
     gpio_set_function(uart_p->rxdPin , GPIO_FUNC_UART);
     return success;
 }
+static uint32_t uart_disable_before_lcr_write(uart_inst_t *uart) {
+    // Notes from PL011 reference manual:
+    //
+    // - Before writing the LCR, if the UART is enabled it needs to be
+    //   disabled and any current TX + RX activity has to be completed
+    //
+    // - There is a BUSY flag which waits for the current TX char, but this is
+    //   OR'd with TX FIFO !FULL, so not usable when FIFOs are enabled and
+    //   potentially nonempty
+    //
+    // - FIFOs can't be set to disabled whilst a character is in progress
+    //   (else "FIFO integrity is not guaranteed")
+    //
+    // Combination of these means there is no general way to halt and poll for
+    // end of TX character, if FIFOs may be enabled. Either way, there is no
+    // way to poll for end of RX character.
+    //
+    // So, insert a 15 Baud period delay before changing the settings.
+    // 15 Baud is comfortably higher than start + max data + parity + stop.
+    // Anything else would require API changes to permit a non-enabled UART
+    // state after init() where settings can be changed safely.
+    uint32_t cr_save = uart_get_hw(uart)->cr;
 
+    if (cr_save & UART_UARTCR_UARTEN_BITS) {
+        hw_clear_bits(&uart_get_hw(uart)->cr,
+            UART_UARTCR_UARTEN_BITS | UART_UARTCR_TXE_BITS | UART_UARTCR_RXE_BITS);
+
+        uint32_t current_ibrd = uart_get_hw(uart)->ibrd;
+        uint32_t current_fbrd = uart_get_hw(uart)->fbrd;
+
+        // Note: Maximise precision here. Show working, the compiler will mop this up.
+        // Create a 16.6 fixed-point fractional division ratio; then scale to 32-bits.
+        uint32_t brdiv_ratio = 64u * current_ibrd + current_fbrd;
+        brdiv_ratio <<= 10;
+        // 3662 is ~(15 * 244.14) where 244.14 is 16e6 / 2^16
+        uint32_t scaled_freq = clock_get_hz(clk_peri) / 3662ul;
+        uint32_t wait_time_us = brdiv_ratio / scaled_freq;
+        busy_wait_us(wait_time_us);
+    }
+
+    return cr_save;
+}
+static void uart_write_lcr_bits_masked(uart_inst_t *uart, uint32_t values, uint32_t write_mask) {
+    invalid_params_if(UART, uart != uart0 && uart != uart1);
+
+    // (Potentially) Cleanly handle disabling the UART before touching LCR
+    uint32_t cr_save = uart_disable_before_lcr_write(uart);
+
+    hw_write_masked(&uart_get_hw(uart)->lcr_h, values, write_mask);
+
+    uart_get_hw(uart)->cr = cr_save;
+}
 voile_status_t voile_uart_rp2040_Operate_SetBaudrate(voile_const_internal_uart_rp2040_t *uart_p, uint32_t baudrate){
-    uint32_t baud_rate_div = (8 * clock_get_hz(clk_peri) / baudrate);
-    uint32_t baud_ibrd = baud_rate_div >> 7;
-    uint32_t baud_fbrd;
-    if (baudrate == 0){
+    if (baudrate > 8 * clock_get_hz(clk_peri) / (1ul << 7)){
+        uart_p->uartId->UARTIBRD = 1;
+        uart_p->uartId->UARTFBRD = 0;
+        uart_write_lcr_bits_masked(uart_p->uartId, 0, 0);
+        return inputRangeError;
+    } 
+    else if (baudrate < 8 * clock_get_hz(clk_peri) / (65535ul << 7)) {
+        uart_p->uartId->UARTIBRD = 65535;
+        uart_p->uartId->UARTFBRD = 0;
+        uart_write_lcr_bits_masked(uart_p->uartId, 0, 0);
         return inputRangeError;
     }
-    if (baud_ibrd == 0) {
-        baud_ibrd = 1;
-        baud_fbrd = 0;
-    } else if (baud_ibrd >= 65535) {
-        baud_ibrd = 65535;
-        baud_fbrd = 0;
-    }  else {
-        baud_fbrd = ((baud_rate_div & 0x7f) + 1) / 2;
+    else {
+        uart_p->uartId->UARTIBRD = (8 * clock_get_hz(clk_peri) / baudrate)>>7;
+        uart_p->uartId->UARTFBRD = (((8 * clock_get_hz(clk_peri) / baudrate) & 0x7f) + 1) / 2;
     }
+    uart_write_lcr_bits_masked(uart_p->uartId, 0, 0);
+    return success;
 }
