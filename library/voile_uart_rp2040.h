@@ -4,6 +4,7 @@
 #include "voile_interface_uart.h"
 #include "voile_register_rp2040.h"
 #include "hardware/clocks.h"
+#include "hardware/timer.h"
 
 #include "hardware/address_mapped.h"
 #include "hardware/platform_defs.h"
@@ -11,7 +12,6 @@
 
 #include "hardware/structs/uart.h"
 #include "hardware/resets.h"
-#include "hardware/timer.h"
 
 #include "pico/assert.h"
 #include "pico.h"
@@ -57,9 +57,9 @@ static inline bool uart_rp2040_Get_IsWritable(voile_const_internal_uart_rp2040_t
 }
 
 
-voile_status_t uart_rp2040_Operate_Init(voile_const_internal_uart_rp2040_t *, uint32_t);
+static voile_status_t uart_rp2040_Operate_Init(voile_const_internal_uart_rp2040_t *, uint32_t);
 
-voile_status_t voile_uart_rp2040_Operate_SetBaudrate(voile_const_internal_uart_rp2040_t *, uint32_t);
+static voile_status_t uart_rp2040_Operate_SetBaudrate(voile_const_internal_uart_rp2040_t *, uint32_t);
 
 static inline voile_status_t uart_rp2040_Operate_Transmit(voile_const_internal_uart_rp2040_t *uart_p, uint8_t value) {
     while (!uart_rp2040_Get_IsWritable(uart_p));

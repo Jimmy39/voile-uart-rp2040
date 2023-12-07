@@ -184,14 +184,61 @@ typedef struct {
     // 0x0000003f [5:0]   : BAUD_DIVFRAC (0): The fractional baud rate divisor
     io_rw_32 UARTFBRD;
 
+    // Line Control Register, UARTLCR_H
+    // 0x00000080 [7]     : SPS (0): Stick parity select
+    // 0x00000060 [6:5]   : WLEN (0): Word length
+    // 0x00000010 [4]     : FEN (0): Enable FIFOs: 0 = FIFOs are disabled (character mode) that is, the FIFOs become...
+    // 0x00000008 [3]     : STP2 (0): Two stop bits select
+    // 0x00000004 [2]     : EPS (0): Even parity select
+    // 0x00000002 [1]     : PEN (0): Parity enable: 0 = parity is disabled and no parity bit added to the data frame 1 =...
+    // 0x00000001 [0]     : BRK (0): Send break
+    union {
+        io_rw_32 allBits;
+        struct {
+            io_rw_32 BRK    : 1;
+            io_rw_32 PEN    : 1;
+            io_rw_32 EPS    : 1;
+            io_rw_32 STP2   : 1;
+            io_rw_32 FEN    : 1;
+            io_rw_32 WLEN   : 2;
+            io_rw_32 SPS    : 1;
+        } slectBit;
+    } UARTLCR_H;
+
+    // Control Register, UARTCR
+    // 0x00008000 [15]    : CTSEN (0): CTS hardware flow control enable
+    // 0x00004000 [14]    : RTSEN (0): RTS hardware flow control enable
+    // 0x00002000 [13]    : OUT2 (0): This bit is the complement of the UART Out2 (nUARTOut2) modem status output
+    // 0x00001000 [12]    : OUT1 (0): This bit is the complement of the UART Out1 (nUARTOut1) modem status output
+    // 0x00000800 [11]    : RTS (0): Request to send
+    // 0x00000400 [10]    : DTR (0): Data transmit ready
+    // 0x00000200 [9]     : RXE (1): Receive enable
+    // 0x00000100 [8]     : TXE (1): Transmit enable
+    // 0x00000080 [7]     : LBE (0): Loopback enable
+    // 0x00000004 [2]     : SIRLP (0): SIR low-power IrDA mode
+    // 0x00000002 [1]     : SIREN (0): SIR enable: 0 = IrDA SIR ENDEC is disabled
+    // 0x00000001 [0]     : UARTEN (0): UART enable: 0 = UART is disabled
+    union {
+        io_rw_32 allBits;
+        struct {
+            io_rw_32 UARTEN :1;
+            io_rw_32 unused0:7;
+            io_rw_32 TXE    :1;
+            io_rw_32 RXE    :1;
+        } slectBit;
+    } UARTCR;
+
 } voile_register_rp2040_UART_t;
 
 #define voile_rp2040_UART0 ((voile_register_rp2040_UART_t *)(0x40034000u))
 #define voile_rp2040_UART1 ((voile_register_rp2040_UART_t *)(0x40038000u))
+#define voile_rp2040_UART_XOR(x) ((voile_register_rp2040_UART_t *)((uint32_t)x+0x1000u))
 #define voile_rp2040_UART0_XOR ((voile_register_rp2040_UART_t *)(0x40034000u+0x1000u))
 #define voile_rp2040_UART1_XOR ((voile_register_rp2040_UART_t *)(0x40038000u+0x1000u))
+#define voile_rp2040_UART_MuskSet(x) ((voile_register_rp2040_UART_t *)((uint32_t)x+0x2000u))
 #define voile_rp2040_UART0_MuskSet ((voile_register_rp2040_UART_t *)(0x40034000u+0x2000u))
 #define voile_rp2040_UART1_MuskSet ((voile_register_rp2040_UART_t *)(0x40038000u+0x2000u))
+#define voile_rp2040_UART_MuskClear(x) ((voile_register_rp2040_UART_t *)((uint32_t)x+0x3000u))
 #define voile_rp2040_UART0_MuskClear ((voile_register_rp2040_UART_t *)(0x40034000u+0x3000u))
 #define voile_rp2040_UART1_MuskClear ((voile_register_rp2040_UART_t *)(0x40038000u+0x3000u))
 
