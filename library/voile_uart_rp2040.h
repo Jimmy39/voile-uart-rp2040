@@ -44,16 +44,19 @@ extern voile_const_uart_Get_t voile_const_uart_Get_rp2040;
 
 
 
-static inline uint8_t uart_rp2040_Get_Receive(voile_const_internal_uart_rp2040_t *uart_p) {
-    uart_inst_t *uart = ((uart_inst_t *)(uart_p->uartId) == uart0 ? uart0 : uart1);
-    uint8_t value;
-    uart_read_blocking(uart, &value, 1);
-    return value;
+static inline bool uart_rp2040_Get_IsWritable(voile_const_internal_uart_rp2040_t *uart_p) {
+    return !(uart_p->uartId->UARTFR.selectBit.TXFF);
 }
 
 
-static inline bool uart_rp2040_Get_IsWritable(voile_const_internal_uart_rp2040_t *uart_p) {
-    return !(uart_p->uartId->UARTFR.slectBit.TXFF);
+static inline bool uart_rp2040_Get_IsReadable(voile_const_internal_uart_rp2040_t *uart_p) {
+    return !(uart_p->uartId->UARTFR.selectBit.RXFE);
+}
+
+
+static inline uint8_t uart_rp2040_Get_Receive(voile_const_internal_uart_rp2040_t *uart_p) {
+    while (!uart_rp2040_Get_IsReadable(uart_p));
+    return (uint8_t)uart_p->uartId->UARTDR.allBits;
 }
 
 
@@ -68,8 +71,8 @@ static inline voile_status_t uart_rp2040_Operate_Transmit(voile_const_internal_u
 }
 
 static inline voile_status_t uart_rp2040_Operate_Receive(voile_const_internal_uart_rp2040_t *uart_p, uint8_t *value) {
-    uart_inst_t *uart = ((uart_inst_t *)(uart_p->uartId) == uart0 ? uart0 : uart1);
-    uart_read_blocking(uart, value, 1);
+    while (!uart_rp2040_Get_IsReadable(uart_p));
+    *value = (uint8_t)uart_p->uartId->UARTDR.allBits;
     return success;
 }
 
