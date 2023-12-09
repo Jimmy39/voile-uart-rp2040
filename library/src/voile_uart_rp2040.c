@@ -15,7 +15,6 @@ voile_const_uart_Get_t voile_const_uart_Get_rp2040 = {
 
 
 static voile_status_t uart_rp2040_Operate_Init(voile_const_internal_uart_rp2040_t *uart_p, uint32_t baudrate){
-    uart_inst_t *uart = ((uart_inst_t *)uart_p->uartId);
     uint32_t cr_save;
     voile_status_t status = success;
     if (uart_p->uartId == UART0_voile){
@@ -48,7 +47,6 @@ static voile_status_t uart_rp2040_Operate_Init(voile_const_internal_uart_rp2040_
         uart_p->uartId->UARTIBRD = (8 * clock_get_hz(clk_peri) / baudrate)>>7;
         uart_p->uartId->UARTFBRD = (((8 * clock_get_hz(clk_peri) / baudrate) & 0x7f) + 1) / 2;
     }
-    uart_set_format(uart, 8, 1, UART_PARITY_NONE);
  
     // (Potentially) Cleanly handle disabling the UART before touching LCR
     cr_save = uart_p->uartId->UARTCR.allBits;
