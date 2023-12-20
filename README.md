@@ -8,9 +8,12 @@ This library use with:
 
 **[voile-interface-uart](https://github.com/Jimmy39/voile-interface-uart)** : Define interface to use uart.
 
-**[voile-common](https://github.com/Jimmy39/voile-library)** : Some common defination.
+**[voile_register_rp2040.h](https://github.com/Jimmy39/voile-register/blob/main/library/raspberrypi/voile_register_rp2040.h)** : Registers defination.
 
 **RP2040 SDK** : Use timmer and clock.
+
+**[voile-common](https://github.com/Jimmy39/voile-library)** : Some common defination.
+
 
 ## Class voile_const_internal_uart_rp2040_t
 

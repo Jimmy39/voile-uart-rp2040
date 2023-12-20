@@ -20,7 +20,7 @@ typedef const struct{
     voile_const_uart_Get_t *Get;
 
     // UART0_voile or UART1_voile
-    voile_register_rp2040_UART_t *uartId;
+    voile_rp2040_UART_t *uartId;
 
     // Pin number of TXD
     uint8_t txdPin;
@@ -32,10 +32,10 @@ typedef const struct{
 
 
 // uartId defination for UART0
-#define UART0_voile ((voile_register_rp2040_UART_t *)_u(0x40034000))
+#define UART0_voile ((voile_rp2040_UART_t *)_u(0x40034000))
 
 // uartId defination for UART1
-#define UART1_voile ((voile_register_rp2040_UART_t *)_u(0x40038000))
+#define UART1_voile ((voile_rp2040_UART_t *)_u(0x40038000))
 
 
 // The functions operate the uart
